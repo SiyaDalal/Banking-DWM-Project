@@ -1,386 +1,156 @@
 
-
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from pathlib import Path
 
-# --------------------------------------------------
-# PAGE CONFIGURATION
-# --------------------------------------------------
 st.set_page_config(
-    page_title="Banking Intelligence | DWM Analytics",
+    page_title="BankIntel | Banking Analytics",
     page_icon="🏦",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# --------------------------------------------------
-# CUSTOM WEBSITE STYLING
-# --------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+
+def load_csv(filename):
+    path = DATA_DIR / filename
+    if path.exists():
+        try:
+            return pd.read_csv(path)
+        except Exception as error:
+            st.error(f"Could not read {filename}: {error}")
+    return None
+
+kpis = load_csv("dashboard_kpis.csv")
+models = load_csv("model_comparison.csv")
+grades = load_csv("olap_rollup_by_grade.csv")
+
 st.markdown("""
 <style>
-    .stApp {
-        background-color: #F4F7FC;
-    }
-
-    [data-testid="stSidebar"] {
-        background-color: #101C36;
-    }
-
-    [data-testid="stSidebar"] * {
-        color: #FFFFFF;
-    }
-
-    .brand {
-        font-size: 25px;
-        font-weight: 800;
-        color: #FFFFFF;
-        padding: 10px 0 0 0;
-    }
-
-    .brand-subtitle {
-        color: #B8C5DD;
-        font-size: 12px;
-        margin-bottom: 28px;
-    }
-
-    .main-title {
-        color: #152747;
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 0;
-    }
-
-    .subtitle {
-        color: #6B7890;
-        font-size: 14px;
-        margin-bottom: 24px;
-    }
-
-    .kpi-card {
-        background: #FFFFFF;
-        padding: 22px;
-        border-radius: 14px;
-        border: 1px solid #E5EAF3;
-        min-height: 135px;
-    }
-
-    .kpi-label {
-        color: #64748B;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .kpi-value {
-        color: #172B4D;
-        font-size: 28px;
-        font-weight: 800;
-        margin-top: 12px;
-    }
-
-    .kpi-note {
-        color: #718096;
-        font-size: 12px;
-        margin-top: 7px;
-    }
-
-    .section-title {
-        color: #172B4D;
-        font-size: 20px;
-        font-weight: 750;
-        margin-top: 18px;
-    }
-
-    .panel {
-        background: #FFFFFF;
-        border: 1px solid #E5EAF3;
-        border-radius: 14px;
-        padding: 20px;
-        min-height: 125px;
-    }
-
-    .panel-heading {
-        color: #172B4D;
-        font-size: 16px;
-        font-weight: 700;
-    }
-
-    .panel-note {
-        color: #718096;
-        font-size: 13px;
-        margin-top: 10px;
-    }
-
-    div[data-testid="stMetric"] {
-        background: #FFFFFF;
-        border: 1px solid #E5EAF3;
-        padding: 18px;
-        border-radius: 12px;
-    }
-
-    div[data-testid="stMetricLabel"] {
-        color: #64748B;
-    }
-
-    .stButton button {
-        border-radius: 9px;
-    }
-
-    footer {
-        visibility: hidden;
-    }
+.stApp {background: #F4F7FC;}
+[data-testid="stSidebar"] {background: #101C36;}
+[data-testid="stSidebar"] * {color: white;}
+.block-container {padding-top: 2rem;}
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------
-# SIDEBAR NAVIGATION
-# --------------------------------------------------
 with st.sidebar:
-    st.markdown(
-        '<div class="brand">🏦 BankIntel</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        '<div class="brand-subtitle">'
-        'DATA WAREHOUSING & MINING'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown("---")
-    st.caption("MAIN MENU")
-
+    st.markdown("# 🏦 BankIntel")
+    st.caption("BANKING INTELLIGENCE")
     page = st.radio(
-        "Navigate",
-        [
-            "Overview",
-            "Loan Risk Analytics",
-            "Model Performance",
-            "Transaction Anomalies",
-            "Customer Intelligence",
-            "OLAP Reports",
-            "Download Reports"
-        ],
-        label_visibility="collapsed"
+        "Navigation",
+        ["Overview", "Loan Risk", "Model Performance", "OLAP Reports"]
     )
+    st.divider()
+    st.caption("Data Warehousing & Data Mining")
 
-    st.markdown("---")
-    st.markdown("**Project Status**")
-    st.caption("Banking Intelligence System")
-    st.caption("Dashboard UI: Initial version")
+st.title("Banking Intelligence Dashboard")
+st.caption("Loan portfolio and model analytics")
 
-# --------------------------------------------------
-# HEADER
-# --------------------------------------------------
-st.markdown(
-    '<div class="main-title">Banking Intelligence Dashboard</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="subtitle">'
-    'Explore loan portfolio risk, model performance, '
-    'transaction anomalies and customer intelligence.'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-# --------------------------------------------------
-# OVERVIEW PAGE
-# --------------------------------------------------
 if page == "Overview":
+    st.subheader("Portfolio Overview")
 
-    st.markdown("### Portfolio Overview")
-    st.caption(
-        "The figures below will populate from your actual CSV files "
-        "in the next integration step."
-    )
+    if kpis is not None and not kpis.empty:
+        row = kpis.iloc[0]
 
-    c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Loans", f"{int(row['total_loans']):,}")
+        c2.metric(
+            "Total Loan Amount",
+            f"{float(row['total_loan_amount']):,.2f}"
+        )
+        c3.metric("Default Rate", f"{float(row['default_rate_pct']):.2f}%")
+        c4.metric("Default Count", f"{int(row['default_count']):,}")
 
-    with c1:
-        st.metric("Total Loans", "Awaiting data")
+        st.caption(
+            "Metrics are calculated from the available fact table. "
+            "They may not represent the full original dataset."
+        )
+    else:
+        st.warning(
+            "KPI data is not available yet. Add "
+            "data/dashboard_kpis.csv to the repository."
+        )
 
-    with c2:
-        st.metric("Loan Amount", "Awaiting data")
-
-    with c3:
-        st.metric("Default Rate", "Awaiting data")
-
-    with c4:
-        st.metric("Models Evaluated", "2 available")
-
-    st.markdown(
-        '<div class="section-title">Analytics Workspace</div>',
-        unsafe_allow_html=True
-    )
-
+    st.divider()
     left, right = st.columns(2)
 
     with left:
-        st.markdown(
-            '<div class="panel">'
-            '<div class="panel-heading">📊 Loan Portfolio by Grade</div>'
-            '<div class="panel-note">'
-            'Grade-wise loan counts and portfolio amounts will appear here '
-            'after the CSV integration.'
-            '</div></div>',
-            unsafe_allow_html=True
-        )
+        st.subheader("Loan Distribution by Grade")
+        if grades is not None and {
+            "grade", "Total_Loans"
+        }.issubset(grades.columns):
+            chart_data = grades[["grade", "Total_Loans"]].copy()
+            chart_data = chart_data.set_index("grade")
+            st.bar_chart(chart_data)
+        else:
+            st.info("Add a valid olap_rollup_by_grade.csv to show this chart.")
 
     with right:
-        st.markdown(
-            '<div class="panel">'
-            '<div class="panel-heading">📈 Model Performance</div>'
-            '<div class="panel-note">'
-            'Compare accuracy, precision, recall, F1-score and ROC-AUC '
-            'using the saved model comparison results.'
-            '</div></div>',
-            unsafe_allow_html=True
-        )
+        st.subheader("Model Performance")
+        if models is not None and "Model" in models.columns:
+            metric_cols = [
+                c for c in
+                ["Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC"]
+                if c in models.columns
+            ]
+            if metric_cols:
+                st.bar_chart(models.set_index("Model")[metric_cols])
+            else:
+                st.info("No model metric columns found.")
+        else:
+            st.info("Add model_comparison.csv to show model metrics.")
 
-    st.markdown(
-        '<div class="section-title">Additional Intelligence Modules</div>',
-        unsafe_allow_html=True
-    )
-
-    a, b, c = st.columns(3)
-
-    with a:
-        st.markdown(
-            '<div class="panel">'
-            '<div class="panel-heading">🔎 Transaction Anomalies</div>'
-            '<div class="panel-note">'
-            'Anomaly flags and evaluation results.'
-            '</div></div>',
-            unsafe_allow_html=True
-        )
-
-    with b:
-        st.markdown(
-            '<div class="panel">'
-            '<div class="panel-heading">👥 Customer Intelligence</div>'
-            '<div class="panel-note">'
-            'Customer segments and behavior profiles.'
-            '</div></div>',
-            unsafe_allow_html=True
-        )
-
-    with c:
-        st.markdown(
-            '<div class="panel">'
-            '<div class="panel-heading">🗂️ OLAP Reports</div>'
-            '<div class="panel-note">'
-            'Roll-up, drill-down, slice and dice analysis.'
-            '</div></div>',
-            unsafe_allow_html=True
-        )
-
-# --------------------------------------------------
-# LOAN RISK ANALYTICS PAGE
-# --------------------------------------------------
-elif page == "Loan Risk Analytics":
+elif page == "Loan Risk":
     st.subheader("Loan Risk Analytics")
-    st.write(
-        "Analyze loan amount, grade, purpose, borrower attributes "
-        "and default status."
-    )
+    if kpis is not None:
+        st.dataframe(kpis, use_container_width=True)
+    else:
+        st.warning("KPI summary is not available.")
 
-    st.info(
-        "The fact and dimension CSV files will be connected in Step 3."
-    )
+    if grades is not None:
+        st.subheader("Grade-wise Portfolio")
+        st.dataframe(grades, use_container_width=True)
 
-    st.markdown("#### Planned analysis")
-    st.write("- Total loan amount and loan count")
-    st.write("- Default rate from validated default labels")
-    st.write("- Loan distribution by grade and purpose")
-    st.write("- Monthly portfolio trends")
-
-# --------------------------------------------------
-# MODEL PERFORMANCE PAGE
-# --------------------------------------------------
 elif page == "Model Performance":
-    st.subheader("Model Performance")
-    st.write(
-        "Compare the saved classification metrics for Logistic Regression "
-        "and Decision Tree."
-    )
+    st.subheader("Model Comparison")
+    if models is not None:
+        st.dataframe(models, use_container_width=True)
+        metric_cols = [
+            c for c in
+            ["Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC"]
+            if c in models.columns
+        ]
+        if "Model" in models.columns and metric_cols:
+            st.bar_chart(models.set_index("Model")[metric_cols])
+    else:
+        st.warning("Model comparison report is not available.")
 
-    st.info(
-        "The model_comparison.csv file will populate the metrics and "
-        "comparison chart in Step 3."
-    )
-
-    st.write("Metrics: Accuracy, Precision, Recall, F1-Score and ROC-AUC.")
-
-# --------------------------------------------------
-# TRANSACTION ANOMALIES PAGE
-# --------------------------------------------------
-elif page == "Transaction Anomalies":
-    st.subheader("Transaction Anomaly Detection")
-
-    st.write(
-        "Review transactions flagged by the anomaly detection model "
-        "and evaluate the model against available labels."
-    )
-
-    st.info(
-        "This section requires Member 2's verified anomaly detection output."
-    )
-
-# --------------------------------------------------
-# CUSTOMER INTELLIGENCE PAGE
-# --------------------------------------------------
-elif page == "Customer Intelligence":
-    st.subheader("Customer Intelligence")
-
-    st.write(
-        "Explore customer segments, transaction behavior and segment profiles."
-    )
-
-    st.info(
-        "This section requires the verified customer segmentation results."
-    )
-
-# --------------------------------------------------
-# OLAP REPORTS PAGE
-# --------------------------------------------------
 elif page == "OLAP Reports":
     st.subheader("OLAP Reports")
+    report_names = [
+        "olap_rollup_by_grade.csv",
+        "olap_drilldown_by_month.csv",
+        "olap_dice_results.csv",
+        "portfolio_by_grade.csv",
+        "portfolio_by_purpose.csv"
+    ]
 
-    st.write(
-        "Explore multidimensional analysis of the loan portfolio."
-    )
+    for filename in report_names:
+        report = load_csv(filename)
+        with st.expander(filename):
+            if report is None:
+                st.info("This report has not been added yet.")
+            else:
+                st.dataframe(report, use_container_width=True)
+                st.download_button(
+                    f"Download {filename}",
+                    data=(DATA_DIR / filename).read_bytes(),
+                    file_name=filename,
+                    mime="text/csv",
+                    key=filename
+                )
 
-    st.markdown("- Roll-up: summarize loans by grade.")
-    st.markdown("- Drill-down: explore results by month.")
-    st.markdown("- Slice and dice: inspect selected subsets of data.")
-
-    st.info(
-        "Your existing OLAP CSV outputs will be connected in Step 3."
-    )
-
-# --------------------------------------------------
-# DOWNLOAD REPORTS PAGE
-# --------------------------------------------------
-elif page == "Download Reports":
-    st.subheader("Download Reports")
-
-    st.write(
-        "Download available project CSV reports once the data files "
-        "are connected."
-    )
-
-    st.info(
-        "Report previews and download buttons will be implemented "
-        "in Step 3."
-    )
-
-# --------------------------------------------------
-# FOOTER
-# --------------------------------------------------
-st.markdown("---")
-st.caption(
-    "BankIntel | Banking Intelligence and Risk Analytics System "
-    "| Data Warehousing and Data Mining Project"
-)
+st.divider()
+st.caption("BankIntel | DWM Project | Member 1 Dashboard")
