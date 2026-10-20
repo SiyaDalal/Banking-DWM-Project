@@ -1,0 +1,4 @@
+Class,Class_Label,Transactions,Amount_Total,Amount_Average
+0,Legitimate label (Class 0),284315,25102462.039984,88.291022
+1,Fraud label (Class 1),492,60127.97,122.211321
+All,All source rows,284807,25162590.009984,88.349619

@@ -1,0 +1,8 @@
+Metric,Value
+Source rows,1048567
+Valid customer transaction rows,1048567
+Unique customers,884265
+Total transaction amount (INR),1650795731.570078
+Average transaction amount (INR),1574.335003
+Customer balance observations,1046198
+Average account balance (INR),115403.540056
